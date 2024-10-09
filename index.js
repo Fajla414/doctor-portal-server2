@@ -23,15 +23,8 @@ const client = new MongoClient(uri, {
 });
 
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'public/doctors')
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${file.originalname}`)
-    }
-})
 
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 
@@ -87,29 +80,21 @@ const run = async () => {
         })
 
 
-
         app.post('/addADoctor', upload.single('file'), (req, res) => {
-            const file = req.file.filename;
+            const file = req.file;
             const name = req.body.name;
             const email = req.body.email;
             const phone = req.body.phone;
-            const newImg = fs.readFileSync(`public/doctors/${file}`);
-            const encImg = newImg.toString('base64');
+            const newImg = file.buffer;
 
             const image = {
                 contentType: req.file.mimetype,
                 size: req.file.size,
-                img: Buffer.from(encImg, 'base64')
+                img: newImg
             }
 
             doctorsCollection.insertOne({ name, email, phone, image }).then(result => {
-                fs.remove(`public/doctors/${file}`, err => {
-                    if (err) {
-                        console.log(err);
-                        res.status(500).send({ msg: 'Failed to upload' });
-                    }
-                    res.send(result.acknowledged === true)
-                })
+                res.send(result.acknowledged === true)
             })
         })
 
